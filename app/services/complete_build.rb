@@ -51,7 +51,7 @@ class CompleteBuild
         if violation_message_totals[message] < Hound::MAX_COMMENTS
           message
         else
-          "#{message} (Hound found #{violation_message_totals[message] - 1} similar #{"case".pluralize(violation_message_totals[message] - 1)})"
+          "#{message} (Hound found #{violation_message_totals[message]} similar #{"case".pluralize(violation_message_totals[message])})"
         end
       end
 
