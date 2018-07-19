@@ -4,8 +4,7 @@ describe CompleteBuild do
   describe ".call" do
     context "when build has violations" do
       context "when the build is complete" do
-        it "makes comments only for new violations and repects max limit" do
-          stub_const("Hound::MAX_COMMENTS", 2)
+        it "makes comments for new violations only" do
           build = stub_build(["foo", "bar", "baz"])
           existing_comment = build_comment("foo")
           pull_request = stub_pull_request([existing_comment])
@@ -18,7 +17,25 @@ describe CompleteBuild do
           )
 
           expect(pull_request).to have_received(:make_comments) do |arg|
-            expect(arg.flat_map(&:messages)).to match_array ["bar"]
+            expect(arg.flat_map(&:messages)).to match_array ["bar", "baz"]
+          end
+        end
+
+        it "consolidates too many similar comments" do
+          stub_const("Hound::MAX_COMMENTS", 2)
+          build = stub_build(["foo", "bar", "bar", "bar"])
+          existing_comment = build_comment("foo")
+          pull_request = stub_pull_request([existing_comment])
+          stubbed_github_api
+
+          CompleteBuild.call(
+            pull_request: pull_request,
+            build: build,
+            token: "abc123",
+          )
+
+          expect(pull_request).to have_received(:make_comments) do |arg|
+            expect(arg.flat_map(&:messages)).to match_array ["bar (Hound found 2 similar cases)"]
           end
         end
 
@@ -157,8 +174,7 @@ describe CompleteBuild do
 
     def stub_build(violation_messages, attributes = {})
       violations = violation_messages.map do |violation_message|
-        instance_double(
-          "Violation",
+        OpenStruct.new(
           filename: "app/anything.rb",
           patch_position: 1,
           messages: [violation_message],
