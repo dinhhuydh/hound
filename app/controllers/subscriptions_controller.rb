@@ -90,7 +90,9 @@ class SubscriptionsController < ApplicationController
         render_error("There was an issue creating the subscription")
       end
     else
-      render_error("There was an issue activating the repo")
+      render_error(
+        activator.errors.first.presence || "There was an issue activating the repo"
+      )
     end
   end
 
